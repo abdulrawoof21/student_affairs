@@ -1,5 +1,5 @@
 import {prisma} from '@/utils/prisma'
-import {sign} from 'jsonwebtoken'
+import {SignJWT} from 'jose'
 import type {NextApiRequest, NextApiResponse} from 'next'
 import type {User} from '@/utils/types'
 
@@ -22,6 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     try{
 
         const {emailId, password}: Body = req.body
+        console.log(req.cookies)
         
         if(!emailId || !password || !emailId.trim().length || !password.trim().length || password.trim().length !== 64){
             return res.status(400).json({success: false, msg: 'Invalid credentials', data: null})
@@ -41,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         const user_details = structuredClone(user) as User
         delete user_details.password
 
-        const token = sign(user_details, process.env.JWT_SECRET_KEY as string)
+        const token = await(new SignJWT(user_details).setProtectedHeader({alg: 'HS256', typ: 'JWT'}).sign(new TextEncoder().encode(`${process.env.JWT}`)))
 
         const seven_days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         res.setHeader('Set-Cookie', `token=${token};Secure;HTTPOnly;SameSite=Strict;path=/;Expires=${seven_days}`)
@@ -52,5 +53,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
         res.status(500).json({success: false, msg: 'Internal server error', data: null})
     }
 }
-
-    
