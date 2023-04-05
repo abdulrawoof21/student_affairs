@@ -1,4 +1,4 @@
-import {prisma} from '@/utils'
+import {prisma} from '@/utils/prisma'
 import {sign} from 'jsonwebtoken'
 import type {NextApiRequest, NextApiResponse} from 'next'
 import type {User} from '@/utils/types'
