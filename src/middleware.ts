@@ -6,7 +6,7 @@ import {jwtVerify} from 'jose'
 export async function middleware(request: NextRequest) {
     console.log(new URL('/login', request.url))
     if(!(request.cookies.has('token'))){
-        return NextResponse.rewrite('/login', request.nextUrl.origin)
+        return NextResponse.redirect(new URL('/login', request.url))
     }
 
     console.log(request);
@@ -17,23 +17,23 @@ export async function middleware(request: NextRequest) {
         }
     })
 
-    // const token = request.cookies.get('token')?.value
+    const token = request.cookies.get('token')?.value
 
-    // const j = jwtVerify(token as string, new TextEncoder().encode(process.env.JWT_SECRET_KEY))
+    const j = jwtVerify(token as string, new TextEncoder().encode(process.env.JWT_SECRET_KEY))
     // console.log(j);
 
     // console.log(token)
-    // try{
-    //     const j = jwtVerify(token as string, new TextEncoder().encode(process.env.JWT_SECRET_KEY))
-    // }catch(e) {
-    //     response.headers.set('Set-Cookie', `token=;Secure;HTTPOnly;SameSite=Strict;path=/;Expires=0`)
-    //     return NextResponse.redirect(new URL('/about-2', request.url))
-    // }
+    try{
+        const j = jwtVerify(token as string, new TextEncoder().encode(process.env.JWT_SECRET_KEY))
+    }catch(e) {
+        response.headers.set('Set-Cookie', `token=;Secure;HTTPOnly;SameSite=Strict;path=/;Expires=0`)
+        return NextResponse.redirect(new URL('/login', request.url))
+    }
 
     return response
 }
 
 
 export const config = {
-    matcher: ['/api/:path', '/login']
+    matcher: ['/api/:path', '/']
 }
