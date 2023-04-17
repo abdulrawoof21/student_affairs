@@ -30,7 +30,7 @@ export default function Login(){
             }
             console.log(data);
 
-            // router.replace('/')
+            router.replace('/')
         }catch(e){
             console.log(e);
         }
@@ -41,7 +41,7 @@ export default function Login(){
             <Form form={form} onFinish={submit}>
                 <Form.Item
                     label='Email'
-                    name='emailId'
+                    name='email'
                     rules={[{required: true, message: 'Enter Email ID'}]}
                 >
                     <Input type='email' placeholder='Email' />

@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,48 +7,124 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Designation {
+model accesslist {
+  id             Int          @id @default(autoincrement())
+  designation_id Int?
+  email          String       @unique
+  active         Boolean      @default(true)
+  designation    designation? @relation(fields: [designation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model designation {
   id         Int          @id @default(autoincrement())
-  name       String       @unique
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  AccessList AccessList[]
-  User       User[]
+  name       String
+  created_at DateTime     @default(now()) @db.Timestamp(6)
+  accesslist accesslist[]
+  users      users[]
 }
 
-model Privileges {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model privileges {
+  id              Int               @id @default(autoincrement())
+  name            String
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  user_privileges user_privileges[]
 }
 
-model AccessList {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  designationId Int
-  designation   Designation @relation(fields: [designationId], references: [id])
-  User          User?
+model transfer_branches {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(80)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
 }
 
-model User {
-  id        Int       @id @default(autoincrement())
-  name      String
-  password  String
-  active    Boolean   @default(false)
-  avatar    String?
-  lastLogin DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+model transfer_college_details {
+  dote_id                                                                                          Int                           @id
+  coe_id                                                                                           Int
+  name                                                                                             String                        @db.VarChar(80)
+  phone                                                                                            String?                       @db.VarChar(15)
+  address                                                                                          String?
+  pincode                                                                                          String?                       @db.VarChar(6)
+  created_at                                                                                       DateTime                      @default(now()) @db.Timestamp(6)
+  updated_at                                                                                       DateTime                      @default(now()) @db.Timestamp(6)
+  transfer_seats_availability                                                                      transfer_seats_availability[]
+  transfer_student_details_transfer_student_details_from_college_dote_idTotransfer_college_details transfer_student_details[]    @relation("transfer_student_details_from_college_dote_idTotransfer_college_details")
+  transfer_student_details_transfer_student_details_to_college_dote_idTotransfer_college_details   transfer_student_details[]    @relation("transfer_student_details_to_college_dote_idTotransfer_college_details")
+}
 
-  emailId String     @unique
-  email   AccessList @relation(fields: [emailId], references: [email])
+model transfer_seats_availability {
+  dote_id                  Int
+  year                     String                   @db.VarChar(9)
+  sem                      sem_enum
+  branch                   Int
+  sanctioned               Int
+  admitted                 Int                      @default(autoincrement())
+  created_at               DateTime                 @default(now()) @db.Timestamp(6)
+  updated_at               DateTime                 @default(now()) @db.Timestamp(6)
+  transfer_college_details transfer_college_details @relation(fields: [dote_id], references: [dote_id], onDelete: NoAction, onUpdate: NoAction)
 
-  designationId Int
-  designation   Designation @relation(fields: [designationId], references: [id])
+  @@id([dote_id, year, sem, branch])
+}
 
-  privileges Int[]
+model transfer_status {
+  id                       Int                        @id @default(autoincrement())
+  status_name              String                     @db.VarChar(40)
+  created_at               DateTime                   @default(now()) @db.Timestamp(6)
+  transfer_student_details transfer_student_details[]
+}
+
+model transfer_student_details {
+  roll_no                                                                                          String                   @id
+  name                                                                                             String                   @db.VarChar(60)
+  sem                                                                                              sem_enum
+  branch                                                                                           Int
+  from_college_dote_id                                                                             Int
+  to_college_dote_id                                                                               Int
+  year                                                                                             String                   @db.VarChar(9)
+  batch                                                                                            Int
+  status                                                                                           Int
+  fee                                                                                              Int
+  created_at                                                                                       DateTime                 @default(now()) @db.Timestamp(6)
+  updated_at                                                                                       DateTime                 @default(now()) @db.Timestamp(6)
+  transfer_college_details_transfer_student_details_from_college_dote_idTotransfer_college_details transfer_college_details @relation("transfer_student_details_from_college_dote_idTotransfer_college_details", fields: [from_college_dote_id], references: [dote_id], onDelete: NoAction, onUpdate: NoAction)
+  transfer_status                                                                                  transfer_status          @relation(fields: [status], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  transfer_college_details_transfer_student_details_to_college_dote_idTotransfer_college_details   transfer_college_details @relation("transfer_student_details_to_college_dote_idTotransfer_college_details", fields: [to_college_dote_id], references: [dote_id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model user_privileges {
+  user_id      Int
+  privilege_id Int
+  privileges   privileges @relation(fields: [privilege_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users        users      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([user_id, privilege_id])
+}
+
+model users {
+  id              Int               @id @default(autoincrement())
+  email           String            @unique
+  password        String
+  fullname        String?
+  avatar          String?
+  dob             DateTime?         @db.Date
+  phone           String?
+  designation_id  Int
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  updated_at      DateTime          @default(now()) @db.Timestamp(6)
+  last_login      DateTime?         @db.Timestamp(6)
+  user_privileges user_privileges[]
+  designation     designation       @relation(fields: [designation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model service_fee_details {
+  service    String   @id
+  fee        Int
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+}
+
+enum sem_enum {
+  I
+  III
+  V
+  VII
 }

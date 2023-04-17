@@ -2,46 +2,45 @@ export type Designation = {
   id: number
   name: string
   createdAt: Date
-  updatedAt: Date
-
-  // AccessList AccessList[]
-  // User       User[]
+  users?: User[]
 }
 
 export type Privileges = {
   id: number
   name: string
   createdAt: Date
-  updatedAt: Date
+  user_privileges?: UserPrivileges[]
+}
+
+export type UserPrivileges = {
+  user_id: number
+  privilege_id: number
+  privileges?: Privileges
+  users?: User
 }
 
 export type AccessList = {
   id: number
+  user_id: number
   email: string
+  active: boolean
   createdAt: Date
-  updatedAt: Date
-  designationId: number
-
-  // designation   Designation @relation(fields: [designationId], references: [id])
-  // User          User?
+  users?: User
 }
 
 export type User = {
   id: number
-  name: string
+  email: string
   password?: string
-  active: boolean
+  fullname: string
   avatar: string | null
-  lastLogin: string | null
-  createdAt: Date
-  updatedAt: Date
-  emailId: string
+  dob?: Date
+  phone?: number
   designationId: number
-  privileges: number[]
-
-  // email   AccessList @relation(fields: [emailId], references: [email])
-
-  // designation   Designation @relation(fields: [designationId], references: [id])
-
-  // privileges Int[]
+  created_at: Date
+  updated_at: Date
+  last_login: Date
+  accesslist?: AccessList[]
+  user_privileges?: UserPrivileges[]
+  designation?: Designation
 }

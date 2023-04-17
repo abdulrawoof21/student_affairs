@@ -4,7 +4,7 @@ import type {NextApiRequest, NextApiResponse} from 'next'
 import type {User} from '@/utils/types'
 
 type Body = {
-    emailId: string
+    email: string
     password: string
 }
 
@@ -21,28 +21,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     try{
 
-        const {emailId, password}: Body = req.body
-        console.log(req.cookies)
+        const {email, password}: Body = req.body
         
-        if(!emailId || !password || !emailId.trim().length || !password.trim().length || password.trim().length !== 64){
+        if(!email || !password || !email.trim().length || !password.trim().length || password.trim().length !== 64){
             return res.status(400).json({success: false, msg: 'Invalid credentials', data: null})
         }
 
-        const user = await prisma.user.findFirst({
+        const accesslist = await prisma.accesslist.findFirst({
             where: {
-                emailId,
-                password
-            }
+                email
+            }    
+        })
+
+        if(!accesslist || !accesslist.active){
+            return res.status(401).json({success: false, msg: 'Unauthorized', data: null})
+        }
+
+        let user = await prisma.users.findFirst({
+            where: { email, password }
         })
 
         if (!user) {
             return res.status(401).json({success: false, msg: 'Invalid credentials', data: null})
         }
 
-        const user_details = structuredClone(user) as User
+        user = await prisma.users.update({
+            where: { id: user.id },
+            data: { last_login: new Date() },
+            include: { designation: true, user_privileges: {include: {privileges: true}}}
+        })
+
+        const user_details = structuredClone(user) as unknown as User
         delete user_details.password
 
-        const token = await(new SignJWT(user_details).setProtectedHeader({alg: 'HS256', typ: 'JWT'}).sign(new TextEncoder().encode(`${process.env.JWT}`)))
+        const token = await(new SignJWT(user_details).setProtectedHeader({alg: 'HS256', typ: 'JWT'}).sign(new TextEncoder().encode(`${process.env.JWT_SECRET_KEY}`)))
 
         const seven_days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         res.setHeader('Set-Cookie', `token=${token};Secure;HTTPOnly;SameSite=Strict;path=/;Expires=${seven_days}`)

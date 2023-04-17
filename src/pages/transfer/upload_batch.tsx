@@ -1,128 +1,80 @@
-import React from 'react';
-import { UploadOutlined } from '@ant-design/icons';
-import { Table, UploadProps } from 'antd';
-import { Button, message, Upload } from 'antd';
-import {readExcel, readCSV} from 'danfojs'
-import {base64} from '@/utils/base64'
+import {useRef, useState} from 'react'
+import {DataGrid} from '@mui/x-data-grid'
+import {Box, Button, Autocomplete, TextField, Grid} from '@mui/material'
+import {Upload} from '@mui/icons-material'
+import UploadBatchForm from '@/components/transfer/UploadBatch/UploadBatch'
 
-
-enum FileType {
-    None,
-    Image,
-    Pdf,
-    Excel
-}
-
-type TableData = {
-    columns: Array<string>,
-    rows: Array<any>
-}
-
-
-const ACCEPTED_FILE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf', 'text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
 
 export default function App() {
-    const [tableData, setTableData] = React.useState<TableData>({columns: [], rows: []})
-    const [file, setFile] = React.useState({
-        type: FileType.None,
-        base64: ''
-    });
+    const [data, setData] = useState({rows: [], columns: []})
+    const [show_del, set_show_del] = useState<{selected: Array<any>, show: boolean}>({selected: [], show: false})
 
-    
-    const get_columns_as_obj = (columns: Array<string>) => {
-        const data = []
-        for(let i = 0; i < columns.length; i++){
-            data.push(
-                {
-                    title: columns[i].trim(), 
-                    dataIndex: columns[i].trim().toLowerCase(), 
-                    key: columns[i].trim().toLowerCase()
-                }
-            )
-        }
-        return data
-    }
+    const academic_year_ref = useRef<HTMLInputElement>(null)
+    const batch_ref = useRef<HTMLInputElement>(null)
 
-    const get_rows_as_obj = (columns: Array<string>, rows: Array<any>) => {
-        const data = []
-        for(let i = 0; i < rows.length; i++){
-            const row = rows[i]
-            const row_obj: {[key:string]: any} = {key: i+1}
-            for(let j = 0; j < columns.length; j++){
-                const column = columns[j].trim().toLowerCase()
-                row_obj[column] = row[j]
-            }
-            data.push(row_obj)
-        }
-        return data
-    }
-
-    const change = async (info: any) => {
-        if (info.fileList.length > 1) info.fileList.splice(0, info.fileList.length-1)
-        
-        const file = await base64(info.file.originFileObj)
-
-        let type = info.file.type
-        type = type.includes('image') 
-                ? FileType.Image 
-                : (type.includes('pdf') ? FileType.Pdf : FileType.Excel)
-
-        if (type === FileType.Excel) {
-            const {$columns, $data}: any = await readExcel(info.file.originFileObj)
-            setTableData({columns: $columns, rows: $data})
-            return
-        }
-
-        setFile({base64: file as string, type})
+    const process_row_update = (n: any, o: any) => {
+        return n
     }
 
     const save = async() => {
-        const {columns, rows} = tableData
+        const {rows} = data
+
+        const year = academic_year_ref.current?.value
+        const batch = batch_ref.current?.valueAsNumber
+
+        console.log(rows, year, batch);
+
         const request = await fetch('/api/transfer/upload_batch', {
             headers: {'Content-Type': 'application/json'},
             method: 'POST',
-            body: JSON.stringify({columns, rows})
+            body: JSON.stringify({data: rows, year, batch})
         })
         const response = await request.json()
         console.log(response);
-        if (!response.success) {
-            message.error(response.msg)
-        }else{
-            message.success(response.msg)
-        }
+        // if (!response.success) {
+        //     // message.error(response.msg)
+        // }else{
+        //     // message.success(response.msg)
+        // }
     }
-    
+
     return (
-        <>
-            <Upload 
-                onChange={change}
-                accept={ACCEPTED_FILE_TYPES.join(',')}
-                multiple={false}
-                name='file'
-                >
-                <Button icon={<UploadOutlined />}>Click to Upload</Button>
-            </Upload>
+    <>
+        <UploadBatchForm table_data={data} set_table_data={setData} show_del={show_del} save={save} academic_year_ref={academic_year_ref} batch_ref={batch_ref} />
+
+        <div style={{height: '90vh'}}>
+            <DataGrid
+                sx={{
+                    boxShadow: 2,
+                    border: 2,
+                    borderColor: 'transparent',
+                    '& .MuiDataGrid-cell:hover': {
+                      color: 'primary.main',
+                    },
+                    '& .MuiDataGrid-columnHeader': {
+                        fontWeight: 600,
+                        backgroundColor: '#cccccc80'
+                    }
+                  }}
+                rows={data.rows}
+                columns={data.columns} 
+                processRowUpdate={process_row_update} 
+                onProcessRowUpdateError={e => {console.log(e);}} 
+                checkboxSelection
+                disableRowSelectionOnClick
+                onRowSelectionModelChange={(i,j) => {set_show_del({selected: [...i], show: !!i.length})}}
+
+            />
+
+        </div>
+
+        <datalist id="batch">
+            <option>Hello</option>
+        </datalist>
+    </>)
+
+}
 
 
 
-            <div>
-                {
-                    tableData.columns.length > 0 && tableData.rows.length > 0 &&
-                    <>
-                        <Button 
-                            onClick={save} 
-                            type='primary' 
-                            style={{backgroundColor: 'green'}} 
-                        >Save</Button>
 
-                        <Table 
-                            columns={get_columns_as_obj(tableData.columns)} 
-                            dataSource={get_rows_as_obj(tableData.columns, tableData.rows )}
-                        ></Table>
-                    </>
-                }
-            </div>
-        
-        </>
-    )
-};
